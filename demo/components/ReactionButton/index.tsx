@@ -37,6 +37,9 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
   };
   private _reactionButtonRef: any = React.createRef();
 
+  private _screenWidth: number = Dimensions.get('window').width;
+  private _screenHeight: number = Dimensions.get('window').height;
+
   private _onPress = () => {
     if (typeof this.props.defaultIndex === 'number') {
       this.props.onChange(this.state.selectedIndex >= 0 ? this.state.selectedIndex : this.props.defaultIndex);
@@ -50,10 +53,15 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
   }
 
   private _showReactions = () => {
+    if (this.state.visible) {
+      this._debug('_showReactions', 'reactions already visible in screen')
+      return;
+    }
+
     this.setState({visible: true}, () => {
       Animated.timing(this._opacityAnim, {
         toValue: 1,
-        duration: 250,
+        duration: 150,
         useNativeDriver: true,
       }).start()
     })
@@ -93,14 +101,9 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
     );
   }
   private _onReactionItemPress = (index: number) => {
-    Animated.timing(this._opacityAnim, {
-      toValue: 0,
-      duration: 150,
-      useNativeDriver: true,
-    }).start(() => {
-      this.props.onChange(index);
-      this._closeModalInternal();
-    });
+    this._debug('_onReactionItemPress', index);
+    this.props.onChange(index);
+    this._closeModal();
   };
 
   private _getReactionsContainerLayout = (): {width: number; height: number} => {
@@ -117,13 +120,16 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
   };
 
   private _getReactionsPosition = (): {x: number; y: number} => {
+    if (!this.state.visible) {
+      return {x: 0, y: this._screenHeight};
+    }
+
     let x = 0;
     const rcLayout = this._getReactionsContainerLayout();
 
-    const SCREEN_WIDTH = Dimensions.get('window').width;
     x = this._buttonLayout.x + this._buttonLayout.width/2 - rcLayout.width / 2;
-    if ((x + rcLayout.width) >= SCREEN_WIDTH) {
-      x -= (x + rcLayout.width) - SCREEN_WIDTH + PADDING_SIZE;
+    if ((x + rcLayout.width) >= this._screenWidth) {
+      x -= (x + rcLayout.width) - this._screenWidth + PADDING_SIZE;
     }
 
     return {
@@ -154,7 +160,7 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
   ): any {
     if (nextProps.value >= 0) {
       return {selectedIndex: nextProps.value};
-    } else if (nextProps.defaultIndex) {
+    } else if (typeof nextProps.defaultIndex === 'number' && nextProps.defaultIndex >= 0) {
       return {selectedIndex: nextProps.defaultIndex};
     }
 
@@ -207,6 +213,16 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
         position: 'absolute',
         left: translatePos.x,
         top: translatePos.y
+      },
+      {
+        transform: [
+          {
+            scale: this._opacityAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.3, 1]
+            })
+          }
+        ]
       }
     ];
 

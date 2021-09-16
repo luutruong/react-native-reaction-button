@@ -54,13 +54,18 @@ const App: () => Node = () => {
     },
   ];
 
+  function setSelected(index: number) {
+    console.log('setSelected', index);
+    setValue(value === index ? -1 : index);
+  }
+
   return (
     <SafeAreaView style={[styles.safeAreaContainer, backgroundStyle]}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       <View style={[styles.container, backgroundStyle]}>
         <ReactionButton
           reactions={reactions}
-          onChange={setValue}
+          onChange={setSelected}
           value={value}
           defaultIndex={0}
           debug
