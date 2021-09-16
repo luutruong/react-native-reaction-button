@@ -3,12 +3,11 @@ import {
   TouchableOpacity,
   View,
   Text,
-  GestureResponderEvent,
+  Image,
   StyleSheet,
   Modal,
   Animated,
   TouchableWithoutFeedback,
-  LayoutChangeEvent,
   LayoutRectangle,
   Dimensions
 } from 'react-native';
@@ -20,6 +19,7 @@ const PADDING_SIZE = 10;
 class ReactionButton extends React.Component<ReactionButtonComponentProps, ReactionButtonComponentState> {
   state: ReactionButtonComponentState = {
     visible: false,
+    selectedIndex: -1,
   }
 
   static defaultProps: ReactionButtonComponentBase = {
@@ -35,48 +35,43 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
     x: 0,
     y: 0,
   };
-
-  private _lastOffset: {x: number; y: number} = {x: 0, y: 0};
+  private _reactionButtonRef: any = React.createRef();
 
   private _onPress = () => {
-    // const reaction = this.props.reactions[this.props.defaultReactionIndex];
-    // this.props.onReactionPress(reaction);
-    this._showReactions();
+    if (typeof this.props.defaultIndex === 'number') {
+      this.props.onChange(this.state.selectedIndex >= 0 ? this.state.selectedIndex : this.props.defaultIndex);
+    } else {
+      this._showReactions();
+    }
   };
 
-  private _onPressIn = (evt: GestureResponderEvent) => {
-    this._lastOffset = {x: evt.nativeEvent.pageX, y: evt.nativeEvent.pageY};
-    this._debug('_onPressIn', this._lastOffset);
-    this.setState({visible: true})
-  }
-
   private _onLongPress = () => {
-    this._debug('_onLongPress');
     this._showReactions();
   }
 
   private _showReactions = () => {
-    Animated.timing(this._opacityAnim, {
-      toValue: 1,
-      duration: 250,
-      useNativeDriver: true,
-    }).start()
+    this.setState({visible: true}, () => {
+      Animated.timing(this._opacityAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }).start()
+    })
   };
 
   private _debug = (...args: any[]) => this.props.debug && console.log(...args);
 
-  private _closeModalInternal = () => this.setState({visible: false});
+  private _closeModalInternal = () => {
+    this._debug('_closeModalInternal', this.state);
+    this.setState({visible: false});
+  };
   private _closeModal = () => {
+    this._debug('_closeModal');
     Animated.timing(this._opacityAnim, {
       toValue: 0,
       useNativeDriver: true,
-      duration: 250
-    }).start(this._closeModalInternal)
-  };
-
-  private _onButtonLayout = (evt: LayoutChangeEvent) => {
-    this._debug('_onButtonLayout', evt.nativeEvent);
-    this._buttonLayout = evt.nativeEvent.layout;
+      duration: 150
+    }).start(() => this._closeModalInternal())
   };
 
   private _renderReactionImage = (reaction: ReactionItem, index: number) => {
@@ -93,16 +88,17 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
         style={{
           paddingRight: index <= lastIndex ? PADDING_SIZE : 0,
         }}
+        index={index}
       />
     );
   }
-  private _onReactionItemPress = (reaction: ReactionItem) => {
+  private _onReactionItemPress = (index: number) => {
     Animated.timing(this._opacityAnim, {
       toValue: 0,
       duration: 150,
       useNativeDriver: true,
     }).start(() => {
-      this.props.onReactionPress(reaction);
+      this.props.onChange(index);
       this._closeModalInternal();
     });
   };
@@ -123,8 +119,6 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
   private _getReactionsPosition = (): {x: number; y: number} => {
     let x = 0;
     const rcLayout = this._getReactionsContainerLayout();
-    this._debug(rcLayout);
-    this._debug(this._buttonLayout);
 
     const SCREEN_WIDTH = Dimensions.get('window').width;
     x = this._buttonLayout.x + this._buttonLayout.width/2 - rcLayout.width / 2;
@@ -134,8 +128,37 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
 
     return {
       x: Math.max(PADDING_SIZE, x),
-      y: this._buttonLayout.y - PADDING_SIZE * 2,
+      y: this._buttonLayout.y - this._buttonLayout.height - PADDING_SIZE * 2,
     };
+  }
+
+  private _measureButtonCallback = () => {
+    this._reactionButtonRef.current.measure((_x: number, _y: number, width: number, height: number, px: number, py: number) => {
+      this._buttonLayout = {
+        width,
+        height,
+        x: px,
+        y: py,
+      }
+      this._debug('_measureButtonCallback', this._buttonLayout);
+    })
+  };
+
+  private _onRequestClose = () => {
+    this._closeModalInternal();
+  }
+
+  static getDerivedStateFromProps(
+    nextProps: Readonly<ReactionButtonComponentProps>,
+    prevState: Readonly<ReactionButtonComponentState>
+  ): any {
+    if (nextProps.value >= 0) {
+      return {selectedIndex: nextProps.value};
+    } else if (nextProps.defaultIndex) {
+      return {selectedIndex: nextProps.defaultIndex};
+    }
+
+    return null;
   }
 
   componentDidMount() {
@@ -143,8 +166,10 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
       throw new Error('No reactions passed');
     }
 
-    if (this.props.defaultReactionIndex >= this.props.reactions.length) {
-      throw new Error('`defaultReactionIndex` out of range');
+    if (typeof this.props.defaultIndex === 'number'
+      && this.props.defaultIndex >= this.props.reactions.length
+    ) {
+      throw new Error('`defaultIndex` out of range');
     }
 
     if (typeof this.props.reactionSize !== 'number'
@@ -153,7 +178,11 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
       throw new Error('Invalid value passed `reactionSize`');
     }
 
-    this._opacityAnim.addListener(value => this._debug(value));
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => this._measureButtonCallback());
+    } else {
+      setTimeout(() => this._measureButtonCallback(), 0);
+    }
   }
 
   render() {
@@ -181,20 +210,27 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
       }
     ];
 
+    let selReaction;
+    if (this.state.selectedIndex >= 0) {
+      selReaction = this.props.reactions[this.state.selectedIndex];
+    } else {
+      selReaction = [...this.props.reactions].shift();
+    }
+
     return (
       <>
         <TouchableOpacity
           onPress={this._onPress}
-          onPressIn={this._onPressIn}
-          onLayout={this._onButtonLayout}
           onLongPress={this._onLongPress}
           activeOpacity={0.6}
+          ref={this._reactionButtonRef}
           style={[styles.button, this.props.style]}>
-          <View>
-            <Text style={this.props.textStyle}>Like</Text>
+          <View style={styles.wrapper}>
+            <Image source={selReaction!.source} style={styles.reactionImgSmall} />
+            <Text style={this.props.textStyle}>{selReaction?.title}</Text>
           </View>
         </TouchableOpacity>
-        <Modal visible={this.state.visible} transparent animationType="none" onRequestClose={this._closeModalInternal}>
+        <Modal visible={this.state.visible} transparent animationType="none" onRequestClose={this._onRequestClose}>
           <TouchableWithoutFeedback onPress={this._closeModal}>
             <Animated.View style={backdropStyle} />
           </TouchableWithoutFeedback>
@@ -222,6 +258,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: PADDING_SIZE,
     borderRadius: 10,
+  },
+  reactionImgSmall: {
+    width: 26,
+    height: 26,
+    marginRight: 6,
+  },
+  wrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });
 

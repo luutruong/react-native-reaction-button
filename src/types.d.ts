@@ -14,18 +14,22 @@ export interface ReactionButtonComponentBase {
 
 export interface ReactionButtonComponentProps extends ReactionButtonComponentBase {
   reactions: ReactionItem[];
-  defaultReactionIndex: number;
+  value: number;
 
-  onReactionPress: (reaction: ReactionItem) => void;
+  onChange: (index: number) => void;
+
+  defaultIndex?: number;
 }
 
 export interface ReactionButtonComponentState {
   visible: boolean;
+  selectedIndex: number;
 }
 
 export interface ReactionImageComponentProps {
   reaction: ReactionItem;
-  onPress: (reaction: ReactionItem) => void;
+  onPress: (index: number) => void;
   style: StyleProp<ViewStyle>;
   styleImage: StyleProp<ImageStyle>;
+  index: number;
 }

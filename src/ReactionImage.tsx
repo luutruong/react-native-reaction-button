@@ -7,7 +7,7 @@ export default function ReactionImage(props: ReactionImageComponentProps) {
     <TouchableOpacity
       activeOpacity={0.6}
       style={props.style}
-      onPress={() => props.onPress(props.reaction)}>
+      onPress={() => props.onPress(props.index)}>
       <View>
         <Image source={props.reaction.source} style={props.styleImage} />
       </View>
