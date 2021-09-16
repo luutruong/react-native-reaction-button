@@ -1,6 +1,8 @@
 # Reaction Button
 Reactions button like Facebook does.
 
+![Demo](https://media2.giphy.com/media/10mBuMfaPdsPr2DPnk/giphy.gif)
+
 ## Installation
 
 Yarn:
