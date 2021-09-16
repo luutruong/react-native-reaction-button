@@ -21,7 +21,7 @@ import ReactionButton from './components/ReactionButton';
 
 const App: () => Node = () => {
   const isDarkMode = useColorScheme() === 'dark';
-  const [selectedReaction, setSelectedReaction] = React.useState(null);
+  const [value, setValue] = React.useState(-1);
 
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
@@ -54,34 +54,17 @@ const App: () => Node = () => {
     },
   ];
 
-  function onReactionPress(reaction: any) {
-    setSelectedReaction(reaction);
-  }
-
   return (
     <SafeAreaView style={[styles.safeAreaContainer, backgroundStyle]}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       <View style={[styles.container, backgroundStyle]}>
         <ReactionButton
           reactions={reactions}
-          defaultReactionIndex={0}
-          onReactionPress={onReactionPress}
+          onChange={setValue}
+          value={value}
+          defaultIndex={0}
           debug
           style={styles.button}
-        />
-        <ReactionButton
-          reactions={reactions}
-          defaultReactionIndex={0}
-          onReactionPress={onReactionPress}
-          debug
-          style={[styles.button, styles.buttonCenter]}
-        />
-        <ReactionButton
-          reactions={reactions}
-          defaultReactionIndex={0}
-          onReactionPress={onReactionPress}
-          debug
-          style={[styles.button, styles.buttonEnd]}
         />
       </View>
     </SafeAreaView>
@@ -91,7 +74,7 @@ const App: () => Node = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // alignItems: 'center',
+    alignItems: 'center',
     justifyContent: 'center',
     padding: 10,
   },
@@ -104,13 +87,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     paddingHorizontal: 45,
     paddingVertical: 15,
-    alignSelf: 'flex-start',
-  },
-  buttonEnd: {
-    alignSelf: 'flex-end',
-  },
-  buttonCenter: {
-    alignSelf: 'center',
   },
 });
 
