@@ -1,0 +1,25 @@
+{
+  "name": "@luu-truong/react-native-reaction-button",
+  "version": "1.0.0",
+  "description": "Reactions like Facebook does",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luutruong/react-native-reaction-button.git"
+  },
+  "author": "Truong Luu",
+  "license": "MIT",
+  "scripts": {
+    "watchman": "watchman watch \"$PWD/src\" && watchman -- trigger \"$PWD/src\" rn-reaction-button '*.tsx' -- bash \"$PWD/dev-helper.sh\"",
+    "build": "rm -rf dist/ && tsc"
+  },
+  "devDependencies": {
+    "@types/react-native": "^0.65.0",
+    "react-native": "^0.65.1",
+    "typescript": "^4.4.3"
+  },
+  "bugs": {
+    "url": "https://github.com/luutruong/react-native-reaction-button/issues"
+  },
+  "homepage": "https://github.com/luutruong/react-native-reaction-button#readme"
+}
