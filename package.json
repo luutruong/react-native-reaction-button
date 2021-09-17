@@ -11,10 +11,12 @@
   "license": "MIT",
   "scripts": {
     "watchman": "watchman watch \"$PWD/src\" && watchman -- trigger \"$PWD/src\" rn-reaction-button '*.tsx' -- bash \"$PWD/dev-helper.sh\"",
-    "build": "rm -rf dist/ && tsc"
+    "build": "rm -rf dist/ && tsc",
+    "prettier": "node node_modules/.bin/prettier --write ./src"
   },
   "devDependencies": {
     "@types/react-native": "^0.65.0",
+    "prettier": "^2.4.1",
     "react-native": "^0.65.1",
     "typescript": "^4.4.3"
   },
