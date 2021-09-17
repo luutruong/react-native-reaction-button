@@ -1,4 +1,4 @@
-import { StyleProp, ImageSourcePropType, ViewStyle, TextStyle, ImageStyle } from "react-native";
+import { StyleProp, ImageSourcePropType, ViewStyle, TextStyle, ImageStyle, TextProps } from "react-native";
 
 export interface ReactionItem {
   title: string;
@@ -6,10 +6,12 @@ export interface ReactionItem {
 }
 
 export interface ReactionButtonComponentBase {
-  textStyle?: StyleProp<TextStyle>;
+  textProps?: TextProps;
+
   style?: StyleProp<ViewStyle>;
   debug?: boolean;
   reactionSize?: number; // default 40px
+  reactionSmallSize?: number; // default 20px
 }
 
 export interface ReactionButtonComponentProps extends ReactionButtonComponentBase {
@@ -19,6 +21,7 @@ export interface ReactionButtonComponentProps extends ReactionButtonComponentBas
   onChange: (index: number) => void;
 
   defaultIndex?: number;
+  defaultImage?: ImageSourcePropType;
 }
 
 export interface ReactionButtonComponentState {
