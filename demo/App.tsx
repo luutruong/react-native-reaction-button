@@ -14,6 +14,7 @@ import {
   StyleSheet,
   useColorScheme,
   View,
+  Image,
 } from 'react-native';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
@@ -70,6 +71,12 @@ const App: () => Node = () => {
           defaultIndex={0}
           debug
           style={styles.button}
+          DefaultImage={(passedProps: any) => (
+            <Image
+              source={require('./assets/reactions/love.png')}
+              {...passedProps}
+            />
+          )}
         />
       </View>
     </SafeAreaView>
