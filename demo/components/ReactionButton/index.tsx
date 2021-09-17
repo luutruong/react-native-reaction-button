@@ -11,6 +11,7 @@ import {
   LayoutRectangle,
   Dimensions
 } from 'react-native';
+import { isValidObject } from './helpers';
 import ReactionImage from './ReactionImage';
 import { ReactionButtonComponentBase, ReactionButtonComponentProps, ReactionButtonComponentState, ReactionItem } from './types';
 
@@ -24,7 +25,9 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
 
   static defaultProps: ReactionButtonComponentBase = {
     reactionSize: 40,
+    reactionSmallSize: 20,
     debug: false,
+    textProps: {},
   };
 
   private _opacityAnim: Animated.Value = new Animated.Value(0);
@@ -168,7 +171,7 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
   }
 
   componentDidMount() {
-    if (!this.props.reactions.length) {
+    if (!Array.isArray(this.props.reactions) || !this.props.reactions.length) {
       throw new Error('No reactions passed');
     }
 
@@ -189,6 +192,10 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
     } else {
       setTimeout(() => this._measureButtonCallback(), 0);
     }
+  }
+
+  componentDidUpdate() {
+    this._measureButtonCallback();
   }
 
   render() {
@@ -227,10 +234,13 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
     ];
 
     let selReaction;
+    let imageSource;
     if (this.state.selectedIndex >= 0) {
       selReaction = this.props.reactions[this.state.selectedIndex];
+      imageSource = selReaction.source;
     } else {
       selReaction = [...this.props.reactions].shift();
+      imageSource = this.props.defaultImage;
     }
 
     return (
@@ -242,8 +252,13 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
           ref={this._reactionButtonRef}
           style={[styles.button, this.props.style]}>
           <View style={styles.wrapper}>
-            <Image source={selReaction!.source} style={styles.reactionImgSmall} />
-            <Text style={this.props.textStyle}>{selReaction?.title}</Text>
+            {isValidObject(imageSource) && (
+              <Image source={imageSource!} style={[styles.reactionImgSmall, {
+                width: this.props.reactionSmallSize,
+                height: this.props.reactionSmallSize,
+              }]} />
+            )}
+            <Text {...this.props.textProps}>{selReaction?.title}</Text>
           </View>
         </TouchableOpacity>
         <Modal visible={this.state.visible} transparent animationType="none" onRequestClose={this._onRequestClose}>
@@ -276,8 +291,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   reactionImgSmall: {
-    width: 26,
-    height: 26,
     marginRight: 6,
   },
   wrapper: {
