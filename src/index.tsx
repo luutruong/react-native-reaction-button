@@ -11,7 +11,7 @@ import {
   LayoutRectangle,
   Dimensions,
 } from 'react-native';
-import {isNumber, isValidObject} from './helpers';
+import {isNumber} from './helpers';
 import ReactionImage from './ReactionImage';
 import {
   ReactionButtonComponentBase,
@@ -234,22 +234,22 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
       },
     ];
 
-    let selReaction;
-    let ImageComponent;
+    let selReaction: ReactionItem | undefined;
+    let ImageComponent: any;    
     if (this.state.selectedIndex >= 0) {
       selReaction = this.props.reactions[this.state.selectedIndex];
-      ImageComponent = (
-        <Image
-          source={selReaction.source}
-          style={[
-            styles.reactionImgSmall,
-            {
-              width: this.props.reactionSmallSize,
-              height: this.props.reactionSmallSize,
-            },
-          ]}
-        />
-      );
+      if (this.state.selectedIndex === 0
+        && this.props.value < 0
+      ) {
+        ImageComponent = this.props.DefaultImage;
+      } else {
+        ImageComponent = (passedProps: any) => (
+          <Image
+            source={selReaction!.source}
+            {...passedProps}
+          />
+        );
+      }
     } else {
       selReaction = [...this.props.reactions].shift();
       ImageComponent = this.props.DefaultImage;
@@ -265,7 +265,13 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
           style={[styles.button, this.props.style]}
         >
           <View style={styles.wrapper}>
-            {ImageComponent}
+            {ImageComponent && <ImageComponent style={[
+              styles.reactionImgSmall,
+              {
+                width: this.props.reactionSmallSize,
+                height: this.props.reactionSmallSize,
+              }
+            ]} />}
             <Text {...this.props.textProps}>{selReaction?.title}</Text>
           </View>
         </TouchableOpacity>

@@ -22,7 +22,7 @@ export interface ReactionButtonComponentProps extends ReactionButtonComponentBas
   onChange: (index: number) => void;
 
   defaultIndex?: number;
-  DefaultImage?: JSX.Element;
+  DefaultImage?: (passedProps: {style: any}) => JSX.Element;
 }
 
 export interface ReactionButtonComponentState {
