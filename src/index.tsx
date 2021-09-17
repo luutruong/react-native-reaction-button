@@ -249,7 +249,7 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
             },
           ]}
         />
-      )
+      );
     } else {
       selReaction = [...this.props.reactions].shift();
       ImageComponent = this.props.DefaultImage;
@@ -274,10 +274,18 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
             <Animated.View style={backdropStyle} />
           </TouchableWithoutFeedback>
           <Animated.View style={translatePosStyle}>
-            <View style={[styles.reactions, this.props.reactionContainerStyle, {
-              flexDirection: 'row',
-              padding: PADDING_SIZE,
-            }]}>{this.props.reactions.map(this._renderReactionImage)}</View>
+            <View
+              style={[
+                styles.reactions,
+                this.props.reactionContainerStyle,
+                {
+                  flexDirection: 'row',
+                  padding: PADDING_SIZE,
+                },
+              ]}
+            >
+              {this.props.reactions.map(this._renderReactionImage)}
+            </View>
           </Animated.View>
         </Modal>
       </>
