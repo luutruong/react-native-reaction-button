@@ -1,6 +1,6 @@
 {
   "name": "@luu-truong/react-native-reaction-button",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Reactions like Facebook does",
   "main": "dist/src/index.js",
   "repository": {
