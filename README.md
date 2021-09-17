@@ -57,7 +57,8 @@ function Demo() {
 | onChange | (index: number) => void | yes | Callback when a reaction pressed |
 | textProps | object | no | Props passed to button reaction text |
 | reactionSmallSize | number | no | Size to render reaction in button |
-| defaultImage | object | no | Default image source to render reaction when value is unspecified |
+| DefaultImage | JSX.Element | no | Default image component to render reaction when value is unspecified |
+| reactionContainerStyle | object | no | Style apply to reactions popover container |
 
 ReactionItem properties:
 | Name | Type | Required | Description |

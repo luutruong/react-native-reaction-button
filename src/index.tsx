@@ -11,7 +11,7 @@ import {
   LayoutRectangle,
   Dimensions,
 } from 'react-native';
-import {isValidObject} from './helpers';
+import {isNumber, isValidObject} from './helpers';
 import ReactionImage from './ReactionImage';
 import {
   ReactionButtonComponentBase,
@@ -26,6 +26,7 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
   state: ReactionButtonComponentState = {
     visible: false,
     selectedIndex: -1,
+    measureTriggered: false,
   };
 
   static defaultProps: ReactionButtonComponentBase = {
@@ -49,8 +50,8 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
   private _screenHeight: number = Dimensions.get('window').height;
 
   private _onPress = () => {
-    if (typeof this.props.defaultIndex === 'number') {
-      this.props.onChange(this.state.selectedIndex >= 0 ? this.state.selectedIndex : this.props.defaultIndex);
+    if (isNumber(this.props.defaultIndex)) {
+      this.props.onChange(this.state.selectedIndex >= 0 ? this.state.selectedIndex : this.props.defaultIndex!);
     } else {
       this._showReactions();
     }
@@ -170,7 +171,7 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
   ): any {
     if (nextProps.value >= 0) {
       return {selectedIndex: nextProps.value};
-    } else if (typeof nextProps.defaultIndex === 'number' && nextProps.defaultIndex >= 0) {
+    } else if (isNumber(nextProps.defaultIndex) && nextProps.defaultIndex! >= 0) {
       return {selectedIndex: nextProps.defaultIndex};
     }
 
@@ -182,7 +183,7 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
       throw new Error('No reactions passed');
     }
 
-    if (typeof this.props.defaultIndex === 'number' && this.props.defaultIndex >= this.props.reactions.length) {
+    if (isNumber(this.props.defaultIndex) && this.props.defaultIndex! >= this.props.reactions.length) {
       throw new Error('`defaultIndex` out of range');
     }
 
@@ -190,11 +191,8 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
       throw new Error('Invalid value passed `reactionSize`');
     }
 
-    if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(() => this._measureButtonCallback());
-    } else {
-      setTimeout(() => this._measureButtonCallback(), 0);
-    }
+    // fix case measure button return incorrect coordinates
+    setTimeout(() => this.setState({measureTriggered: true}), 150);
   }
 
   componentDidUpdate() {
@@ -237,13 +235,24 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
     ];
 
     let selReaction;
-    let imageSource;
+    let ImageComponent;
     if (this.state.selectedIndex >= 0) {
       selReaction = this.props.reactions[this.state.selectedIndex];
-      imageSource = selReaction.source;
+      ImageComponent = (
+        <Image
+          source={selReaction.source}
+          style={[
+            styles.reactionImgSmall,
+            {
+              width: this.props.reactionSmallSize,
+              height: this.props.reactionSmallSize,
+            },
+          ]}
+        />
+      )
     } else {
       selReaction = [...this.props.reactions].shift();
-      imageSource = this.props.defaultImage;
+      ImageComponent = this.props.DefaultImage;
     }
 
     return (
@@ -256,18 +265,7 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
           style={[styles.button, this.props.style]}
         >
           <View style={styles.wrapper}>
-            {isValidObject(imageSource) && (
-              <Image
-                source={imageSource!}
-                style={[
-                  styles.reactionImgSmall,
-                  {
-                    width: this.props.reactionSmallSize,
-                    height: this.props.reactionSmallSize,
-                  },
-                ]}
-              />
-            )}
+            {ImageComponent}
             <Text {...this.props.textProps}>{selReaction?.title}</Text>
           </View>
         </TouchableOpacity>
@@ -276,7 +274,10 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
             <Animated.View style={backdropStyle} />
           </TouchableWithoutFeedback>
           <Animated.View style={translatePosStyle}>
-            <View style={styles.reactions}>{this.props.reactions.map(this._renderReactionImage)}</View>
+            <View style={[styles.reactions, this.props.reactionContainerStyle, {
+              flexDirection: 'row',
+              padding: PADDING_SIZE,
+            }]}>{this.props.reactions.map(this._renderReactionImage)}</View>
           </Animated.View>
         </Modal>
       </>
@@ -294,8 +295,6 @@ const styles = StyleSheet.create({
   },
   reactions: {
     backgroundColor: '#fff',
-    flexDirection: 'row',
-    padding: PADDING_SIZE,
     borderRadius: 10,
   },
   reactionImgSmall: {
