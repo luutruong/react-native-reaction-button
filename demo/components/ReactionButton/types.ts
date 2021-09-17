@@ -1,4 +1,4 @@
-import { StyleProp, ImageSourcePropType, ViewStyle, TextStyle, ImageStyle, TextProps } from "react-native";
+import {StyleProp, ImageSourcePropType, ViewStyle, TextStyle, ImageStyle, TextProps} from 'react-native';
 
 export interface ReactionItem {
   title: string;
