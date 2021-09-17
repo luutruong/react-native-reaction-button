@@ -55,6 +55,9 @@ function Demo() {
 | value | number | yes | Selected reaction index. |
 | defaultIndex | number | no | Default reaction |
 | onChange | (index: number) => void | yes | Callback when a reaction pressed |
+| textProps | object | no | Props passed to button reaction text |
+| reactionSmallSize | number | no | Size to render reaction in button |
+| defaultImage | object | no | Default image source to render reaction when value is unspecified |
 
 ReactionItem properties:
 | Name | Type | Required | Description |
