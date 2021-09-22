@@ -15,6 +15,8 @@ import {
   useColorScheme,
   View,
   Image,
+  ScrollView,
+  Dimensions,
 } from 'react-native';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
@@ -63,21 +65,43 @@ const App: () => Node = () => {
   return (
     <SafeAreaView style={[styles.safeAreaContainer, backgroundStyle]}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <View style={[styles.container, backgroundStyle]}>
-        <ReactionButton
-          reactions={reactions}
-          onChange={setSelected}
-          value={value}
-          defaultIndex={0}
-          debug
-          style={styles.button}
-          DefaultImage={(passedProps: any) => (
-            <Image
-              source={require('./assets/reactions/love.png')}
-              {...passedProps}
-            />
-          )}
-        />
+      <View style={backgroundStyle}>
+        <ScrollView>
+          <Image
+            source={{uri: 'https://source.unsplash.com/daily'}}
+            style={styles.image}
+          />
+          <Image
+            source={{uri: 'https://source.unsplash.com/daily'}}
+            style={styles.image}
+          />
+          <Image
+            source={{uri: 'https://source.unsplash.com/daily'}}
+            style={styles.image}
+          />
+          <Image
+            source={{uri: 'https://source.unsplash.com/daily'}}
+            style={styles.image}
+          />
+          <Image
+            source={{uri: 'https://source.unsplash.com/daily'}}
+            style={styles.image}
+          />
+          <ReactionButton
+            reactions={reactions}
+            onChange={setSelected}
+            value={value}
+            defaultIndex={0}
+            debug
+            style={styles.button}
+            DefaultImage={(passedProps: any) => (
+              <Image
+                source={require('./assets/reactions/love.png')}
+                {...passedProps}
+              />
+            )}
+          />
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
@@ -99,6 +123,12 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     paddingHorizontal: 45,
     paddingVertical: 15,
+    alignSelf: 'flex-start',
+  },
+  image: {
+    width: Dimensions.get('window').width,
+    height: 300,
+    marginBottom: 10,
   },
 });
 

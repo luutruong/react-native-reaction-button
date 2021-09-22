@@ -26,7 +26,7 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
   state: ReactionButtonComponentState = {
     visible: false,
     selectedIndex: -1,
-    measureTriggered: false,
+    lastPressIn: 0,
   };
 
   static defaultProps: ReactionButtonComponentBase = {
@@ -76,6 +76,8 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
     });
   };
 
+  private _onPressIn = () => this.setState({lastPressIn: Date.now()});
+
   private _debug = (...args: any[]) => this.props.debug && console.log(...args);
 
   private _closeModalInternal = () => {
@@ -106,6 +108,7 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
           paddingRight: index <= lastIndex ? PADDING_SIZE : 0,
         }}
         index={index}
+        renderImage={this.props.imageProps?.renderImage}
       />
     );
   };
@@ -190,9 +193,6 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
     if (typeof this.props.reactionSize !== 'number' || this.props.reactionSize <= 0) {
       throw new Error('Invalid value passed `reactionSize`');
     }
-
-    // fix case measure button return incorrect coordinates
-    setTimeout(() => this.setState({measureTriggered: true}), 150);
   }
 
   componentDidUpdate() {
@@ -259,6 +259,7 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
       <>
         <TouchableOpacity
           onPress={this._onPress}
+          onPressIn={this._onPressIn}
           onLongPress={this._onLongPress}
           activeOpacity={0.6}
           ref={this._reactionButtonRef}
