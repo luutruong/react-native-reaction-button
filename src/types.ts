@@ -28,7 +28,7 @@ export interface ReactionButtonComponentProps extends ReactionButtonComponentBas
 export interface ReactionButtonComponentState {
   visible: boolean;
   selectedIndex: number;
-  measureTriggered: boolean;
+  lastPressIn: number;
 }
 
 export interface ReactionImageComponentProps {
