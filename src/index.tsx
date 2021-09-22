@@ -108,6 +108,7 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
           paddingRight: index <= lastIndex ? PADDING_SIZE : 0,
         }}
         index={index}
+        renderImage={this.props.imageProps?.renderImage}
       />
     );
   };

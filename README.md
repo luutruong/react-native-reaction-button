@@ -1,4 +1,5 @@
 # Reaction Button
+
 Reactions button like Facebook does.
 
 ![Demo](https://media2.giphy.com/media/10mBuMfaPdsPr2DPnk/giphy.gif)
@@ -6,11 +7,13 @@ Reactions button like Facebook does.
 ## Installation
 
 Yarn:
+
 ```bash
 yarn add @luu-truong/react-native-reaction-button
 ```
 
 NPM:
+
 ```bash
 npm install @luu-truong/react-native-reaction-button
 ```
@@ -59,6 +62,7 @@ function Demo() {
 | reactionSmallSize | number | no | Size to render reaction in button |
 | DefaultImage | (passedProps: any) => JSX.Element | no | Default image component to render reaction when value is unspecified |
 | reactionContainerStyle | object | no | Style apply to reactions popover container |
+| imageProps | {renderImage: (props) => JSX.Element} | no | |
 
 ReactionItem properties:
 | Name | Type | Required | Description |

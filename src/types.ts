@@ -1,4 +1,4 @@
-import {StyleProp, ImageSourcePropType, ViewStyle, TextStyle, ImageStyle, TextProps, View} from 'react-native';
+import {StyleProp, ImageSourcePropType, ViewStyle, TextStyle, ImageStyle, TextProps, View, ImageProps} from 'react-native';
 
 export interface ReactionItem {
   title: string;
@@ -23,6 +23,7 @@ export interface ReactionButtonComponentProps extends ReactionButtonComponentBas
 
   defaultIndex?: number;
   DefaultImage?: (passedProps: {style: any}) => JSX.Element;
+  imageProps?: ReactionImageComponentProps;
 }
 
 export interface ReactionButtonComponentState {
@@ -31,10 +32,14 @@ export interface ReactionButtonComponentState {
   lastPressIn: number;
 }
 
-export interface ReactionImageComponentProps {
+export interface ReactionImageComponentBaseProps {
   reaction: ReactionItem;
   onPress: (index: number) => void;
   style: StyleProp<ViewStyle>;
   styleImage: StyleProp<ImageStyle>;
   index: number;
+}
+
+export interface ReactionImageComponentProps {
+  renderImage?: (props: ImageProps) => JSX.Element;
 }
