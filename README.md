@@ -63,6 +63,8 @@ function Demo() {
 | DefaultImage | (passedProps: any) => JSX.Element | no | Default image component to render reaction when value is unspecified |
 | reactionContainerStyle | object | no | Style apply to reactions popover container |
 | imageProps | {renderImage: (props) => JSX.Element} | no | |
+| style | ViewStyle | no | |
+| hitSlop | {top: number; left: number; right: number; bottom: number} | no | |
 
 ReactionItem properties:
 | Name | Type | Required | Description |
