@@ -13,6 +13,12 @@ export interface ReactionButtonComponentBase {
   reactionSize?: number; // default 40px
   reactionSmallSize?: number; // default 20px
   reactionContainerStyle?: StyleProp<ViewStyle>;
+  hitSlop?: {
+    top: number;
+    left: number;
+    right: number;
+    bottom: number;
+  };
 }
 
 export interface ReactionButtonComponentProps extends ReactionButtonComponentBase {

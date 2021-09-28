@@ -34,6 +34,12 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
     reactionSmallSize: 20,
     debug: false,
     textProps: {},
+    hitSlop: {
+      top: 10,
+      left: 10,
+      right: 10,
+      bottom: 10,
+    },
   };
 
   private _opacityAnim: Animated.Value = new Animated.Value(0);
@@ -264,6 +270,7 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
           activeOpacity={0.6}
           ref={this._reactionButtonRef}
           style={[styles.button, this.props.style]}
+          hitSlop={this.props.hitSlop}
         >
           <View style={styles.wrapper}>
             {ImageComponent && <ImageComponent style={[
