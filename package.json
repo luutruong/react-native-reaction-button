@@ -27,5 +27,9 @@
   "files": [
     "package.json",
     "dist"
+  ],
+  "keywords": [
+    "react native",
+    "reaction button"
   ]
 }
