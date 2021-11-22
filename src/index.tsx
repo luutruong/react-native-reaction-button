@@ -50,7 +50,7 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
     x: 0,
     y: 0,
   };
-  private _reactionButtonRef: any = React.createRef();
+  private _reactionButtonRef: {current: any} = React.createRef();
 
   private _screenWidth: number = Dimensions.get('window').width;
   private _screenHeight: number = Dimensions.get('window').height;
@@ -215,6 +215,7 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
         opacity: this._opacityAnim.interpolate({
           inputRange: [0, 1],
           outputRange: [0, 0.2],
+          extrapolate: 'clamp',
         }),
       },
     ];
@@ -234,6 +235,7 @@ class ReactionButton extends React.Component<ReactionButtonComponentProps, React
             scale: this._opacityAnim.interpolate({
               inputRange: [0, 1],
               outputRange: [0.3, 1],
+              extrapolate: 'clamp',
             }),
           },
         ],
