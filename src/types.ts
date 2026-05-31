@@ -7,6 +7,7 @@ import type {
   ImageProps,
 } from 'react-native';
 import type {ReactElement} from 'react';
+import type {SharedValue} from 'react-native-reanimated';
 
 export interface ReactionItem {
   title: string;
@@ -50,6 +51,16 @@ export interface ReactionImageComponentBaseProps {
   style: StyleProp<ViewStyle>;
   styleImage: StyleProp<ImageStyle>;
   index: number;
+  /** Shared value carrying the index playing the "fly into button" burst (-1 if none). */
+  selectedBurstIndex: SharedValue<number>;
+  /** Linear 0 → 1 progress driving the parabolic arc + scale curve. */
+  burstProgress: SharedValue<number>;
+  /** Horizontal delta from this reaction's slot center to the button icon center. */
+  destDx?: number;
+  /** Vertical delta from this reaction's slot center to the button icon center. */
+  destDy?: number;
+  /** Final scale at landing — typically reactionSmallSize / reactionSize. */
+  destScale?: number;
 }
 
 export interface ReactionImageComponentProps {

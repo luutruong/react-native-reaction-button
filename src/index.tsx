@@ -10,11 +10,14 @@ import {
 } from 'react-native';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import Animated, {
+  Easing,
   FadeIn,
   FadeOut,
   ZoomIn,
   ZoomOut,
   runOnJS,
+  useSharedValue,
+  withTiming,
 } from 'react-native-reanimated';
 
 import {isNumber} from './helpers';
@@ -27,6 +30,7 @@ const DEFAULT_REACTION_SMALL_SIZE = 20;
 const DEFAULT_LONG_PRESS_DURATION = 300;
 const DEFAULT_ANIMATION_DURATION = 150;
 const DEFAULT_HIT_SLOP = {top: 10, left: 10, right: 10, bottom: 10};
+const PICK_ANIMATION_DURATION = 400;
 
 type ButtonLayout = {x: number; y: number; width: number; height: number};
 
@@ -80,6 +84,10 @@ function ReactionButton(props: ReactionButtonComponentProps) {
   const buttonRef = useRef<View>(null);
   const screen = useMemo(() => Dimensions.get('window'), []);
 
+  // Shared values driving the pick animation on the chosen reaction.
+  const selectedBurstIndex = useSharedValue(-1);
+  const burstProgress = useSharedValue(0);
+
   const reactionsContainerLayout = useMemo(
     () => ({
       width:
@@ -98,33 +106,49 @@ function ReactionButton(props: ReactionButtonComponentProps) {
       x -= x + reactionsContainerLayout.width - screen.width + PADDING_SIZE;
     }
     const y = layout.y - reactionsContainerLayout.height - PADDING_SIZE;
-    return {
-      x: Math.max(PADDING_SIZE, x),
-      y,
-    };
+    return {x: Math.max(PADDING_SIZE, x), y};
   }, [layout, reactionsContainerLayout, screen]);
-
-  const showWithLayout = useCallback(
-    (next: ButtonLayout) => {
-      setLayout(next);
-      setVisible(true);
-    },
-    [],
-  );
 
   const openReactions = useCallback(() => {
     debugLog('openReactions');
+    // Reset burst state from any prior pick BEFORE the new tray mounts.
+    selectedBurstIndex.value = -1;
+    burstProgress.value = 0;
     const node = buttonRef.current;
     if (!node) return;
     node.measureInWindow((x, y, width, height) => {
-      showWithLayout({x, y, width, height});
+      setLayout({x, y, width, height});
+      setVisible(true);
     });
-  }, [debugLog, showWithLayout]);
+  }, [debugLog, selectedBurstIndex, burstProgress]);
 
   const closeReactions = useCallback(() => {
     debugLog('closeReactions');
+    selectedBurstIndex.value = -1;
+    burstProgress.value = 0;
     setVisible(false);
-  }, [debugLog]);
+  }, [debugLog, selectedBurstIndex, burstProgress]);
+
+  const pickReaction = useCallback(
+    (index: number) => {
+      debugLog('pickReaction', index);
+      // Drive a linear 0 → 1 progress for the parabolic arc.
+      selectedBurstIndex.value = index;
+      burstProgress.value = 0;
+      burstProgress.value = withTiming(1, {
+        duration: PICK_ANIMATION_DURATION,
+        easing: Easing.linear,
+      });
+      setTimeout(() => {
+        onChange(index);
+        setVisible(false);
+        // Keep selectedBurstIndex / burstProgress set until next open —
+        // resetting now would snap the picked reaction back to its tray slot
+        // for one frame and cause a visible "splash" before ZoomOut.
+      }, PICK_ANIMATION_DURATION);
+    },
+    [debugLog, onChange, selectedBurstIndex, burstProgress],
+  );
 
   const handleTap = useCallback(() => {
     if (isNumber(defaultIndex)) {
@@ -134,15 +158,6 @@ function ReactionButton(props: ReactionButtonComponentProps) {
     }
   }, [defaultIndex, onChange, selectedIndex, openReactions]);
 
-  const handleReactionItemPress = useCallback(
-    (index: number) => {
-      debugLog('handleReactionItemPress', index);
-      onChange(index);
-      closeReactions();
-    },
-    [debugLog, onChange, closeReactions],
-  );
-
   const gesture = useMemo(() => {
     const longPress = Gesture.LongPress()
       .minDuration(longPressDuration)
@@ -150,6 +165,7 @@ function ReactionButton(props: ReactionButtonComponentProps) {
         runOnJS(openReactions)();
       });
     const tap = Gesture.Tap().onEnd((_e, success) => {
+      'worklet';
       if (success) {
         runOnJS(handleTap)();
       }
@@ -225,20 +241,45 @@ function ReactionButton(props: ReactionButtonComponentProps) {
                   reactionContainerStyle,
                   {flexDirection: 'row', padding: PADDING_SIZE},
                 ]}>
-                {reactions.map((reaction, index) => (
-                  <ReactionImage
-                    reaction={reaction}
-                    key={reaction.title}
-                    onPress={handleReactionItemPress}
-                    styleImage={{width: reactionSize, height: reactionSize}}
-                    style={{
-                      paddingRight:
-                        index < reactions.length - 1 ? PADDING_SIZE : 0,
-                    }}
-                    index={index}
-                    renderImage={imageProps?.renderImage}
-                  />
-                ))}
+                {reactions.map((reaction, index) => {
+                  // Tray slot center in window:
+                  const slotCenterX =
+                    reactionsPosition.x +
+                    PADDING_SIZE +
+                    index * (reactionSize + PADDING_SIZE) +
+                    reactionSize / 2;
+                  const slotCenterY =
+                    reactionsPosition.y + PADDING_SIZE + reactionSize / 2;
+                  // Button small-icon center: left edge of the button content row.
+                  const iconCenterX =
+                    (layout?.x ?? 0) +
+                    PADDING_SIZE * 2 +
+                    reactionSmallSize / 2;
+                  const iconCenterY =
+                    (layout?.y ?? 0) + (layout?.height ?? 0) / 2;
+                  const destDx = iconCenterX - slotCenterX;
+                  const destDy = iconCenterY - slotCenterY;
+                  const destScale = reactionSmallSize / reactionSize;
+                  return (
+                    <ReactionImage
+                      reaction={reaction}
+                      key={reaction.title}
+                      onPress={pickReaction}
+                      styleImage={{width: reactionSize, height: reactionSize}}
+                      style={{
+                        paddingRight:
+                          index < reactions.length - 1 ? PADDING_SIZE : 0,
+                      }}
+                      index={index}
+                      selectedBurstIndex={selectedBurstIndex}
+                      burstProgress={burstProgress}
+                      destDx={destDx}
+                      destDy={destDy}
+                      destScale={destScale}
+                      renderImage={imageProps?.renderImage}
+                    />
+                  );
+                })}
               </View>
             </Animated.View>
           </>
