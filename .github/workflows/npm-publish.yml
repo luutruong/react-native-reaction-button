@@ -15,8 +15,8 @@ jobs:
     - name: Setup node
       uses: actions/setup-node@v2
       with:
-        node-version: '14'
-    - run: yarn install --frozen-lockfile
+        node-version: '22'
+    - run: yarn install --immutable
     - run: yarn build
     - name: Publish if version has been updated
       uses: pascalgn/npm-publish-action@1.3.8
