@@ -1,0 +1,26 @@
+{
+  "name": "examples",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@luu-truong/react-native-reaction-button": "file:..",
+    "expo": "~56.0.8",
+    "expo-status-bar": "~56.0.4",
+    "react": "19.2.3",
+    "react-native": "0.85.3",
+    "react-native-gesture-handler": "~2.31.1",
+    "react-native-reanimated": "4.3.1",
+    "react-native-worklets": "0.8.3"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web"
+  },
+  "private": true
+}

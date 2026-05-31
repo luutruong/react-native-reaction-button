@@ -62,5 +62,8 @@
     "reaction button",
     "reanimated"
   ],
-  "packageManager": "yarn@3.6.4"
+  "packageManager": "yarn@3.6.4",
+  "dependencies": {
+    "react-native-worklets": "^0.8.3"
+  }
 }

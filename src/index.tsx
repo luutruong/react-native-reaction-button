@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useMemo, useRef, useState} from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,14 @@ import {
   Modal,
   TouchableWithoutFeedback,
   Dimensions,
-  type LayoutRectangle,
 } from 'react-native';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import Animated, {
+  FadeIn,
+  FadeOut,
+  ZoomIn,
+  ZoomOut,
   runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
 } from 'react-native-reanimated';
 
 import {isNumber} from './helpers';
@@ -27,6 +27,8 @@ const DEFAULT_REACTION_SMALL_SIZE = 20;
 const DEFAULT_LONG_PRESS_DURATION = 300;
 const DEFAULT_ANIMATION_DURATION = 150;
 const DEFAULT_HIT_SLOP = {top: 10, left: 10, right: 10, bottom: 10};
+
+type ButtonLayout = {x: number; y: number; width: number; height: number};
 
 function ReactionButton(props: ReactionButtonComponentProps) {
   const {
@@ -74,22 +76,9 @@ function ReactionButton(props: ReactionButtonComponentProps) {
   }, [value, defaultIndex]);
 
   const [visible, setVisible] = useState(false);
+  const [layout, setLayout] = useState<ButtonLayout | null>(null);
   const buttonRef = useRef<View>(null);
-  const buttonLayoutRef = useRef<LayoutRectangle>({width: 0, height: 0, x: 0, y: 0});
-
-  const progress = useSharedValue(0);
   const screen = useMemo(() => Dimensions.get('window'), []);
-
-  const measureButton = useCallback(() => {
-    buttonRef.current?.measureInWindow((x, y, width, height) => {
-      buttonLayoutRef.current = {x, y, width, height};
-      debugLog('measureButton', buttonLayoutRef.current);
-    });
-  }, [debugLog]);
-
-  useEffect(() => {
-    measureButton();
-  });
 
   const reactionsContainerLayout = useMemo(
     () => ({
@@ -103,36 +92,39 @@ function ReactionButton(props: ReactionButtonComponentProps) {
   );
 
   const reactionsPosition = useMemo(() => {
-    if (!visible) return {x: 0, y: screen.height};
-    const layout = buttonLayoutRef.current;
+    if (!layout) return {x: PADDING_SIZE, y: -screen.height};
     let x = layout.x + layout.width / 2 - reactionsContainerLayout.width / 2;
     if (x + reactionsContainerLayout.width >= screen.width) {
       x -= x + reactionsContainerLayout.width - screen.width + PADDING_SIZE;
     }
+    const y = layout.y - reactionsContainerLayout.height - PADDING_SIZE;
     return {
       x: Math.max(PADDING_SIZE, x),
-      y: layout.y - layout.height - PADDING_SIZE * 2,
+      y,
     };
-  }, [visible, reactionsContainerLayout, screen]);
+  }, [layout, reactionsContainerLayout, screen]);
+
+  const showWithLayout = useCallback(
+    (next: ButtonLayout) => {
+      setLayout(next);
+      setVisible(true);
+    },
+    [],
+  );
 
   const openReactions = useCallback(() => {
     debugLog('openReactions');
-    setVisible(true);
-    progress.value = withTiming(1, {duration: animationDuration});
-  }, [debugLog, progress, animationDuration]);
-
-  const finishClose = useCallback(() => {
-    setVisible(false);
-  }, []);
+    const node = buttonRef.current;
+    if (!node) return;
+    node.measureInWindow((x, y, width, height) => {
+      showWithLayout({x, y, width, height});
+    });
+  }, [debugLog, showWithLayout]);
 
   const closeReactions = useCallback(() => {
     debugLog('closeReactions');
-    progress.value = withTiming(0, {duration: animationDuration}, (finished) => {
-      if (finished) {
-        runOnJS(finishClose)();
-      }
-    });
-  }, [debugLog, progress, animationDuration, finishClose]);
+    setVisible(false);
+  }, [debugLog]);
 
   const handleTap = useCallback(() => {
     if (isNumber(defaultIndex)) {
@@ -165,15 +157,6 @@ function ReactionButton(props: ReactionButtonComponentProps) {
     return Gesture.Exclusive(longPress, tap);
   }, [longPressDuration, openReactions, handleTap]);
 
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: progress.value * 0.2,
-  }));
-
-  const popoverStyle = useAnimatedStyle(() => ({
-    opacity: progress.value,
-    transform: [{scale: 0.3 + progress.value * 0.7}],
-  }));
-
   let selReaction: ReactionItem | undefined;
   let ImageComponent: ((p: {style: any}) => React.ReactElement) | undefined;
   if (selectedIndex >= 0) {
@@ -193,7 +176,11 @@ function ReactionButton(props: ReactionButtonComponentProps) {
   return (
     <>
       <GestureDetector gesture={gesture}>
-        <View ref={buttonRef} style={[styles.button, style]} hitSlop={hitSlop} collapsable={false}>
+        <View
+          ref={buttonRef}
+          style={[styles.button, style]}
+          hitSlop={hitSlop}
+          collapsable={false}>
           <View style={styles.wrapper}>
             {ImageComponent ? (
               <ImageComponent
@@ -207,39 +194,55 @@ function ReactionButton(props: ReactionButtonComponentProps) {
           </View>
         </View>
       </GestureDetector>
-      <Modal visible={visible} transparent animationType="none" onRequestClose={finishClose}>
-        <TouchableWithoutFeedback onPress={closeReactions}>
-          <Animated.View style={[styles.backdrop, StyleSheet.absoluteFill, backdropStyle]} />
-        </TouchableWithoutFeedback>
-        <Animated.View
-          style={[
-            {
-              width: reactionsContainerLayout.width,
-              position: 'absolute',
-              left: reactionsPosition.x,
-              top: reactionsPosition.y,
-            },
-            popoverStyle,
-          ]}>
-          <View
-            style={[
-              styles.reactions,
-              reactionContainerStyle,
-              {flexDirection: 'row', padding: PADDING_SIZE},
-            ]}>
-            {reactions.map((reaction, index) => (
-              <ReactionImage
-                reaction={reaction}
-                key={reaction.title}
-                onPress={handleReactionItemPress}
-                styleImage={{width: reactionSize, height: reactionSize}}
-                style={{paddingRight: index < reactions.length - 1 ? PADDING_SIZE : 0}}
-                index={index}
-                renderImage={imageProps?.renderImage}
+      <Modal
+        visible={visible}
+        transparent
+        animationType="none"
+        onRequestClose={closeReactions}>
+        {visible ? (
+          <>
+            <TouchableWithoutFeedback onPress={closeReactions}>
+              <Animated.View
+                entering={FadeIn.duration(animationDuration)}
+                exiting={FadeOut.duration(animationDuration)}
+                style={[styles.backdrop, StyleSheet.absoluteFill]}
               />
-            ))}
-          </View>
-        </Animated.View>
+            </TouchableWithoutFeedback>
+            <Animated.View
+              entering={ZoomIn.duration(animationDuration)}
+              exiting={ZoomOut.duration(animationDuration)}
+              style={[
+                styles.popover,
+                {
+                  width: reactionsContainerLayout.width,
+                  left: reactionsPosition.x,
+                  top: reactionsPosition.y,
+                },
+              ]}>
+              <View
+                style={[
+                  styles.reactions,
+                  reactionContainerStyle,
+                  {flexDirection: 'row', padding: PADDING_SIZE},
+                ]}>
+                {reactions.map((reaction, index) => (
+                  <ReactionImage
+                    reaction={reaction}
+                    key={reaction.title}
+                    onPress={handleReactionItemPress}
+                    styleImage={{width: reactionSize, height: reactionSize}}
+                    style={{
+                      paddingRight:
+                        index < reactions.length - 1 ? PADDING_SIZE : 0,
+                    }}
+                    index={index}
+                    renderImage={imageProps?.renderImage}
+                  />
+                ))}
+              </View>
+            </Animated.View>
+          </>
+        ) : null}
       </Modal>
     </>
   );
@@ -251,7 +254,10 @@ const styles = StyleSheet.create({
     paddingVertical: PADDING_SIZE,
   },
   backdrop: {
-    backgroundColor: '#000',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  popover: {
+    position: 'absolute',
   },
   reactions: {
     backgroundColor: '#fff',

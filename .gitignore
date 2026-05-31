@@ -4,3 +4,4 @@ dist/
 lib/
 .yarn/cache/
 .yarn/install-state.gz
+examples/.yarn/
