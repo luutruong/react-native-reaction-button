@@ -1,8 +1,12 @@
 {
   "name": "@luu-truong/react-native-reaction-button",
-  "version": "1.0.6",
+  "version": "2.0.0",
   "description": "Reactions like Facebook does",
-  "main": "dist/src/index.js",
+  "main": "lib/commonjs/index.js",
+  "module": "lib/module/index.js",
+  "types": "lib/typescript/src/index.d.ts",
+  "react-native": "src/index.tsx",
+  "source": "src/index.tsx",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/luutruong/react-native-reaction-button.git"
@@ -10,15 +14,39 @@
   "author": "Truong Luu",
   "license": "MIT",
   "scripts": {
-    "watchman": "watchman watch \"$PWD/src\" && watchman -- trigger \"$PWD/src\" rn-reaction-button '*.tsx' -- bash \"$PWD/dev-helper.sh\"",
-    "build": "rm -rf dist/ && tsc",
-    "prettier": "node node_modules/.bin/prettier --write ./src"
+    "build": "bob build",
+    "prettier": "prettier --write ./src",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18.3.0",
+    "react-native": ">=0.76.0",
+    "react-native-gesture-handler": ">=2.20.0",
+    "react-native-reanimated": ">=3.16.0"
   },
   "devDependencies": {
-    "@types/react-native": "^0.65.0",
-    "prettier": "^2.4.1",
-    "react-native": "^0.65.1",
-    "typescript": "^4.4.3"
+    "@types/react": "^18.3.12",
+    "prettier": "^3.3.3",
+    "react": "18.3.1",
+    "react-native": "0.76.0",
+    "react-native-builder-bob": "^0.32.0",
+    "react-native-gesture-handler": "^2.20.0",
+    "react-native-reanimated": "^3.16.0",
+    "typescript": "^5.4.5"
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      "commonjs",
+      "module",
+      [
+        "typescript",
+        {
+          "project": "tsconfig.json"
+        }
+      ]
+    ]
   },
   "bugs": {
     "url": "https://github.com/luutruong/react-native-reaction-button/issues"
@@ -26,10 +54,13 @@
   "homepage": "https://github.com/luutruong/react-native-reaction-button#readme",
   "files": [
     "package.json",
-    "dist"
+    "src",
+    "lib"
   ],
   "keywords": [
     "react native",
-    "reaction button"
-  ]
+    "reaction button",
+    "reanimated"
+  ],
+  "packageManager": "yarn@3.6.4"
 }

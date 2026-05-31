@@ -1,312 +1,248 @@
-import React from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
-  TouchableOpacity,
   View,
   Text,
   Image,
   StyleSheet,
   Modal,
-  Animated,
   TouchableWithoutFeedback,
-  LayoutRectangle,
   Dimensions,
+  type LayoutRectangle,
 } from 'react-native';
+import {Gesture, GestureDetector} from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+
 import {isNumber} from './helpers';
 import ReactionImage from './ReactionImage';
-import {
-  ReactionButtonComponentBase,
-  ReactionButtonComponentProps,
-  ReactionButtonComponentState,
-  ReactionItem,
-} from './types';
+import type {ReactionButtonComponentProps, ReactionItem} from './types';
 
 const PADDING_SIZE = 10;
+const DEFAULT_REACTION_SIZE = 40;
+const DEFAULT_REACTION_SMALL_SIZE = 20;
+const DEFAULT_LONG_PRESS_DURATION = 300;
+const DEFAULT_ANIMATION_DURATION = 150;
+const DEFAULT_HIT_SLOP = {top: 10, left: 10, right: 10, bottom: 10};
 
-class ReactionButton extends React.Component<ReactionButtonComponentProps, ReactionButtonComponentState> {
-  state: ReactionButtonComponentState = {
-    visible: false,
-    selectedIndex: -1,
-    lastPressIn: 0,
-  };
+function ReactionButton(props: ReactionButtonComponentProps) {
+  const {
+    reactions,
+    value,
+    onChange,
+    defaultIndex,
+    debug = false,
+    reactionSize = DEFAULT_REACTION_SIZE,
+    reactionSmallSize = DEFAULT_REACTION_SMALL_SIZE,
+    longPressDuration = DEFAULT_LONG_PRESS_DURATION,
+    animationDuration = DEFAULT_ANIMATION_DURATION,
+    hitSlop = DEFAULT_HIT_SLOP,
+    textProps,
+    style,
+    reactionContainerStyle,
+    DefaultImage,
+    imageProps,
+  } = props;
 
-  static defaultProps: ReactionButtonComponentBase = {
-    reactionSize: 40,
-    reactionSmallSize: 20,
-    debug: false,
-    textProps: {},
-    hitSlop: {
-      top: 10,
-      left: 10,
-      right: 10,
-      bottom: 10,
+  if (!Array.isArray(reactions) || reactions.length === 0) {
+    throw new Error('No reactions passed');
+  }
+  if (isNumber(defaultIndex) && defaultIndex! >= reactions.length) {
+    throw new Error('`defaultIndex` out of range');
+  }
+  if (typeof reactionSize !== 'number' || reactionSize <= 0) {
+    throw new Error('Invalid value passed `reactionSize`');
+  }
+
+  const debugLog = useCallback(
+    (...args: unknown[]) => {
+      if (debug) {
+        // eslint-disable-next-line no-console
+        console.log(...args);
+      }
     },
-  };
+    [debug],
+  );
 
-  private _opacityAnim: Animated.Value = new Animated.Value(0);
+  const selectedIndex = useMemo(() => {
+    if (value >= 0) return value;
+    if (isNumber(defaultIndex) && defaultIndex! >= 0) return defaultIndex!;
+    return -1;
+  }, [value, defaultIndex]);
 
-  private _buttonLayout: LayoutRectangle = {
-    width: 0,
-    height: 0,
-    x: 0,
-    y: 0,
-  };
-  private _reactionButtonRef: {current: any} = React.createRef();
+  const [visible, setVisible] = useState(false);
+  const buttonRef = useRef<View>(null);
+  const buttonLayoutRef = useRef<LayoutRectangle>({width: 0, height: 0, x: 0, y: 0});
 
-  private _screenWidth: number = Dimensions.get('window').width;
-  private _screenHeight: number = Dimensions.get('window').height;
+  const progress = useSharedValue(0);
+  const screen = useMemo(() => Dimensions.get('window'), []);
 
-  private _onPress = () => {
-    if (isNumber(this.props.defaultIndex)) {
-      this.props.onChange(this.state.selectedIndex >= 0 ? this.state.selectedIndex : this.props.defaultIndex!);
-    } else {
-      this._showReactions();
-    }
-  };
-
-  private _onLongPress = () => {
-    this._showReactions();
-  };
-
-  private _showReactions = () => {
-    if (this.state.visible) {
-      this._debug('_showReactions', 'reactions already visible in screen');
-      return;
-    }
-
-    this.setState({visible: true}, () => {
-      Animated.timing(this._opacityAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }).start();
+  const measureButton = useCallback(() => {
+    buttonRef.current?.measureInWindow((x, y, width, height) => {
+      buttonLayoutRef.current = {x, y, width, height};
+      debugLog('measureButton', buttonLayoutRef.current);
     });
-  };
+  }, [debugLog]);
 
-  private _onPressIn = () => this.setState({lastPressIn: Date.now()});
+  useEffect(() => {
+    measureButton();
+  });
 
-  private _debug = (...args: any[]) => this.props.debug && console.log(...args);
+  const reactionsContainerLayout = useMemo(
+    () => ({
+      width:
+        reactions.length * reactionSize +
+        (reactions.length - 1) * PADDING_SIZE +
+        PADDING_SIZE * 2,
+      height: reactionSize + PADDING_SIZE * 2,
+    }),
+    [reactions.length, reactionSize],
+  );
 
-  private _closeModalInternal = () => {
-    this._debug('_closeModalInternal', this.state);
-    this.setState({visible: false});
-  };
-  private _closeModal = () => {
-    this._debug('_closeModal');
-    Animated.timing(this._opacityAnim, {
-      toValue: 0,
-      useNativeDriver: true,
-      duration: 150,
-    }).start(() => this._closeModalInternal());
-  };
-
-  private _renderReactionImage = (reaction: ReactionItem, index: number) => {
-    const lastIndex = this.props.reactions.length - 1;
-    return (
-      <ReactionImage
-        reaction={reaction}
-        key={reaction.title}
-        onPress={this._onReactionItemPress}
-        styleImage={{
-          width: this.props.reactionSize,
-          height: this.props.reactionSize,
-        }}
-        style={{
-          paddingRight: index <= lastIndex ? PADDING_SIZE : 0,
-        }}
-        index={index}
-        renderImage={this.props.imageProps?.renderImage}
-      />
-    );
-  };
-  private _onReactionItemPress = (index: number) => {
-    this._debug('_onReactionItemPress', index);
-    this.props.onChange(index);
-    this._closeModal();
-  };
-
-  private _getReactionsContainerLayout = (): {width: number; height: number} => {
-    if (!this.props.reactionSize) {
-      return {width: 0, height: 0};
+  const reactionsPosition = useMemo(() => {
+    if (!visible) return {x: 0, y: screen.height};
+    const layout = buttonLayoutRef.current;
+    let x = layout.x + layout.width / 2 - reactionsContainerLayout.width / 2;
+    if (x + reactionsContainerLayout.width >= screen.width) {
+      x -= x + reactionsContainerLayout.width - screen.width + PADDING_SIZE;
     }
-
-    const total = this.props.reactions.length;
-
-    return {
-      width: total * this.props.reactionSize + (total - 1) * PADDING_SIZE + PADDING_SIZE * 2,
-      height: this.props.reactionSize + PADDING_SIZE * 2,
-    };
-  };
-
-  private _getReactionsPosition = (): {x: number; y: number} => {
-    if (!this.state.visible) {
-      return {x: 0, y: this._screenHeight};
-    }
-
-    let x = 0;
-    const rcLayout = this._getReactionsContainerLayout();
-
-    x = this._buttonLayout.x + this._buttonLayout.width / 2 - rcLayout.width / 2;
-    if (x + rcLayout.width >= this._screenWidth) {
-      x -= x + rcLayout.width - this._screenWidth + PADDING_SIZE;
-    }
-
     return {
       x: Math.max(PADDING_SIZE, x),
-      y: this._buttonLayout.y - this._buttonLayout.height - PADDING_SIZE * 2,
+      y: layout.y - layout.height - PADDING_SIZE * 2,
     };
-  };
+  }, [visible, reactionsContainerLayout, screen]);
 
-  private _measureButtonCallback = () => {
-    this._reactionButtonRef.current.measure(
-      (_x: number, _y: number, width: number, height: number, px: number, py: number) => {
-        this._buttonLayout = {
-          width,
-          height,
-          x: px,
-          y: py,
-        };
-        this._debug('_measureButtonCallback', this._buttonLayout);
+  const openReactions = useCallback(() => {
+    debugLog('openReactions');
+    setVisible(true);
+    progress.value = withTiming(1, {duration: animationDuration});
+  }, [debugLog, progress, animationDuration]);
+
+  const finishClose = useCallback(() => {
+    setVisible(false);
+  }, []);
+
+  const closeReactions = useCallback(() => {
+    debugLog('closeReactions');
+    progress.value = withTiming(0, {duration: animationDuration}, (finished) => {
+      if (finished) {
+        runOnJS(finishClose)();
       }
-    );
-  };
+    });
+  }, [debugLog, progress, animationDuration, finishClose]);
 
-  private _onRequestClose = () => {
-    this._closeModalInternal();
-  };
-
-  static getDerivedStateFromProps(
-    nextProps: Readonly<ReactionButtonComponentProps>,
-    prevState: Readonly<ReactionButtonComponentState>
-  ): any {
-    if (nextProps.value >= 0) {
-      return {selectedIndex: nextProps.value};
-    } else if (isNumber(nextProps.defaultIndex) && nextProps.defaultIndex! >= 0) {
-      return {selectedIndex: nextProps.defaultIndex};
-    }
-
-    return null;
-  }
-
-  componentDidMount() {
-    if (!Array.isArray(this.props.reactions) || !this.props.reactions.length) {
-      throw new Error('No reactions passed');
-    }
-
-    if (isNumber(this.props.defaultIndex) && this.props.defaultIndex! >= this.props.reactions.length) {
-      throw new Error('`defaultIndex` out of range');
-    }
-
-    if (typeof this.props.reactionSize !== 'number' || this.props.reactionSize <= 0) {
-      throw new Error('Invalid value passed `reactionSize`');
-    }
-  }
-
-  componentDidUpdate() {
-    this._measureButtonCallback();
-  }
-
-  render() {
-    const reactionLayout = this._getReactionsContainerLayout();
-
-    const backdropStyle: any = [
-      styles.backdrop,
-      StyleSheet.absoluteFill,
-      {
-        opacity: this._opacityAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, 0.2],
-          extrapolate: 'clamp',
-        }),
-      },
-    ];
-
-    const translatePos = this._getReactionsPosition();
-    const translatePosStyle: any = [
-      {
-        opacity: this._opacityAnim,
-        width: reactionLayout.width,
-        position: 'absolute',
-        left: translatePos.x,
-        top: translatePos.y,
-      },
-      {
-        transform: [
-          {
-            scale: this._opacityAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0.3, 1],
-              extrapolate: 'clamp',
-            }),
-          },
-        ],
-      },
-    ];
-
-    let selReaction: ReactionItem | undefined;
-    let ImageComponent: any;    
-    if (this.state.selectedIndex >= 0) {
-      selReaction = this.props.reactions[this.state.selectedIndex];
-      if (this.state.selectedIndex === 0
-        && this.props.value < 0
-      ) {
-        ImageComponent = this.props.DefaultImage;
-      } else {
-        ImageComponent = (passedProps: any) => (
-          <Image
-            source={selReaction!.source}
-            {...passedProps}
-          />
-        );
-      }
+  const handleTap = useCallback(() => {
+    if (isNumber(defaultIndex)) {
+      onChange(selectedIndex >= 0 ? selectedIndex : defaultIndex!);
     } else {
-      selReaction = [...this.props.reactions].shift();
-      ImageComponent = this.props.DefaultImage;
+      openReactions();
     }
+  }, [defaultIndex, onChange, selectedIndex, openReactions]);
 
-    return (
-      <>
-        <TouchableOpacity
-          onPress={this._onPress}
-          onPressIn={this._onPressIn}
-          onLongPress={this._onLongPress}
-          activeOpacity={0.6}
-          ref={this._reactionButtonRef}
-          style={[styles.button, this.props.style]}
-          hitSlop={this.props.hitSlop}
-        >
-          <View style={styles.wrapper}>
-            {ImageComponent && <ImageComponent style={[
-              styles.reactionImgSmall,
-              {
-                width: this.props.reactionSmallSize,
-                height: this.props.reactionSmallSize,
-              }
-            ]} />}
-            <Text {...this.props.textProps}>{selReaction?.title}</Text>
-          </View>
-        </TouchableOpacity>
-        <Modal visible={this.state.visible} transparent animationType="none" onRequestClose={this._onRequestClose}>
-          <TouchableWithoutFeedback onPress={this._closeModal}>
-            <Animated.View style={backdropStyle} />
-          </TouchableWithoutFeedback>
-          <Animated.View style={translatePosStyle}>
-            <View
-              style={[
-                styles.reactions,
-                this.props.reactionContainerStyle,
-                {
-                  flexDirection: 'row',
-                  padding: PADDING_SIZE,
-                },
-              ]}
-            >
-              {this.props.reactions.map(this._renderReactionImage)}
-            </View>
-          </Animated.View>
-        </Modal>
-      </>
-    );
+  const handleReactionItemPress = useCallback(
+    (index: number) => {
+      debugLog('handleReactionItemPress', index);
+      onChange(index);
+      closeReactions();
+    },
+    [debugLog, onChange, closeReactions],
+  );
+
+  const gesture = useMemo(() => {
+    const longPress = Gesture.LongPress()
+      .minDuration(longPressDuration)
+      .onStart(() => {
+        runOnJS(openReactions)();
+      });
+    const tap = Gesture.Tap().onEnd((_e, success) => {
+      if (success) {
+        runOnJS(handleTap)();
+      }
+    });
+    return Gesture.Exclusive(longPress, tap);
+  }, [longPressDuration, openReactions, handleTap]);
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: progress.value * 0.2,
+  }));
+
+  const popoverStyle = useAnimatedStyle(() => ({
+    opacity: progress.value,
+    transform: [{scale: 0.3 + progress.value * 0.7}],
+  }));
+
+  let selReaction: ReactionItem | undefined;
+  let ImageComponent: ((p: {style: any}) => React.ReactElement) | undefined;
+  if (selectedIndex >= 0) {
+    selReaction = reactions[selectedIndex];
+    if (selectedIndex === 0 && value < 0) {
+      ImageComponent = DefaultImage;
+    } else {
+      ImageComponent = (passedProps: any) => (
+        <Image source={selReaction!.source} {...passedProps} />
+      );
+    }
+  } else {
+    selReaction = reactions[0];
+    ImageComponent = DefaultImage;
   }
+
+  return (
+    <>
+      <GestureDetector gesture={gesture}>
+        <View ref={buttonRef} style={[styles.button, style]} hitSlop={hitSlop} collapsable={false}>
+          <View style={styles.wrapper}>
+            {ImageComponent ? (
+              <ImageComponent
+                style={[
+                  styles.reactionImgSmall,
+                  {width: reactionSmallSize, height: reactionSmallSize},
+                ]}
+              />
+            ) : null}
+            <Text {...textProps}>{selReaction?.title}</Text>
+          </View>
+        </View>
+      </GestureDetector>
+      <Modal visible={visible} transparent animationType="none" onRequestClose={finishClose}>
+        <TouchableWithoutFeedback onPress={closeReactions}>
+          <Animated.View style={[styles.backdrop, StyleSheet.absoluteFill, backdropStyle]} />
+        </TouchableWithoutFeedback>
+        <Animated.View
+          style={[
+            {
+              width: reactionsContainerLayout.width,
+              position: 'absolute',
+              left: reactionsPosition.x,
+              top: reactionsPosition.y,
+            },
+            popoverStyle,
+          ]}>
+          <View
+            style={[
+              styles.reactions,
+              reactionContainerStyle,
+              {flexDirection: 'row', padding: PADDING_SIZE},
+            ]}>
+            {reactions.map((reaction, index) => (
+              <ReactionImage
+                reaction={reaction}
+                key={reaction.title}
+                onPress={handleReactionItemPress}
+                styleImage={{width: reactionSize, height: reactionSize}}
+                style={{paddingRight: index < reactions.length - 1 ? PADDING_SIZE : 0}}
+                index={index}
+                renderImage={imageProps?.renderImage}
+              />
+            ))}
+          </View>
+        </Animated.View>
+      </Modal>
+    </>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -331,3 +267,4 @@ const styles = StyleSheet.create({
 });
 
 export default ReactionButton;
+export type {ReactionItem, ReactionButtonComponentProps} from './types';
