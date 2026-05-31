@@ -1,6 +1,6 @@
 {
   "name": "@luu-truong/react-native-reaction-button",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "description": "Reactions like Facebook does",
   "main": "lib/commonjs/index.js",
   "module": "lib/module/index.js",
